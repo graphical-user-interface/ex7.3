@@ -2,96 +2,105 @@ import React from "react"
 import Box from "@material-ui/core/Box"
 import Button from "@material-ui/core/Button"
 import Typography from "@material-ui/core/Typography"
+import TextField from "@material-ui/core/TextField"
+import Container from "@material-ui/core/Container"
 import { makeStyles } from "@material-ui/core/styles"
 
 const useStyles = makeStyles({
 	buttons: {
-		margin: "8pt",
+		marginTop: "8pt",
 	},
-	contents: {
-		margin: "8pt",
+	row: {
+		marginTop: "15pt",
 	},
 })
 
 function App() {
-	const [result, setResult] = React.useState(null)
-	const [results, setResults] = React.useState(null)
+	const [results, setResults] = React.useState([])
 	const [finderStarted, setFinderStarted] = React.useState(false)
-	const [numberStatistics, setNumberStatistics] = React.useState({})
-	const [finder, setFinder] = React.useState(null)
+
+	const [start, setStart] = React.useState(3)
+	const [end, setEnd] = React.useState(10)
 
 	const classes = useStyles()
 
 	const findPrimes = (event) => {
-		setResult(null)
-		setResults(null)
+		setResults([])
+
+		if (start >= end) return
+
 		let fndr = new Worker("primesFinder.js")
-		setFinder(fndr)
 		setFinderStarted(true)
 		// send message to the worker
-		fndr.postMessage({ startFrom: 3 })
+		fndr.postMessage({ startFrom: start })
+
 		// receive results from the worker
 		fndr.onmessage = function (message) {
-			if (message.data.prime) {
-				setResult(message.data.prime)
-			}
 			if (message.data.primes) {
 				setResults(message.data.primes)
 				setFinderStarted(false)
-				let ar = {}
-				for (let r in message.data.primes) {
-					let textValue = "" + message.data.primes[r]
-					for (let c in textValue) {
-						let letter = textValue.charAt(c)
-						if (!ar.hasOwnProperty(letter)) {
-							ar[letter] = { value: 1, name: textValue.charAt(c) }
-						} else {
-							ar[letter].value += 1
-						}
-					}
-				}
-
-				setNumberStatistics(ar)
+			}
+			if (message.data.prime >= end - start) {
+				this.postMessage({ stop: true })
+				setFinderStarted(false)
 			}
 		}
 	}
 
-	const analyse = (event) => {
-		console.log("Posting worker a stop message")
-		finder.postMessage({ stop: true })
-		setFinderStarted(false)
+	const handleStartChange = (e) => {
+		setStart(e.target.value)
+	}
+	const handleEndChange = (e) => {
+		setEnd(e.target.value)
 	}
 
-	let resultContent = <Typography>...</Typography>
-	if (results !== null) resultContent = results.length
-
 	return (
-		<Box>
-			<Typography className={classes.contents}>
-				Prime: {result}
-			</Typography>
-			<Button
-				className={classes.buttons}
-				variant='outlined'
-				disabled={finderStarted}
-				color='primary'
-				onClick={findPrimes}>
-				Find primes
-			</Button>
+		<Container maxWidth='sm'>
+			<Box className={classes.row}>
+				<Typography className={classes.contents}>
+					Find prime numbers
+				</Typography>
+				<Box className={classes.row}>
+					<TextField
+						value={start}
+						variant='outlined'
+						type='number'
+						label='From'
+						InputProps={{ inputProps: { min: 3 } }}
+						onChange={handleStartChange}
+					/>
+				</Box>
+				<Box className={classes.row}>
+					<TextField
+						value={end}
+						variant='outlined'
+						type='number'
+						label='To'
+						InputProps={{ inputProps: { min: 10 } }}
+						onChange={handleEndChange}
+					/>
+				</Box>
+				<Button
+					variant='outlined'
+					disabled={finderStarted}
+					className={classes.buttons}
+					onClick={findPrimes}>
+					Find
+				</Button>
 
-			<Button
-				className={classes.buttons}
-				variant='outlined'
-				disabled={result === null}
-				color='primary'
-				onClick={analyse}>
-				Calculate statistics
-			</Button>
-			<Box className={classes.contents}>
-				<Typography>Found primes</Typography>
-				{resultContent}
+				<ul
+					style={{
+						maxHeight: 300,
+						overflow: "auto",
+						padding: 0,
+						listStyle: "inside",
+					}}>
+					{results.map((result, index) => {
+						return <li key={result + "_" + index}>{result}</li>
+					})}
+				</ul>
 			</Box>
-		</Box>
+		</Container>
 	)
 }
 

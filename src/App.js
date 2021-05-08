@@ -33,14 +33,16 @@ function App() {
 		setFinderStarted(true)
 		// send message to the worker
 		fndr.postMessage({ startFrom: start })
+		fndr.postMessage({ stop: false })
 
 		// receive results from the worker
 		fndr.onmessage = function (message) {
+			console.log(typeof start)
 			if (message.data.primes) {
 				setResults(message.data.primes)
 				setFinderStarted(false)
 			}
-			if (message.data.prime >= end - start) {
+			if (message.data.prime >= end - 3) {
 				this.postMessage({ stop: true })
 				setFinderStarted(false)
 			}
@@ -48,10 +50,10 @@ function App() {
 	}
 
 	const handleStartChange = (e) => {
-		setStart(e.target.value)
+		setStart(parseInt(e.target.value))
 	}
 	const handleEndChange = (e) => {
-		setEnd(e.target.value)
+		setEnd(parseInt(e.target.value))
 	}
 
 	return (
